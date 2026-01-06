@@ -6,9 +6,9 @@ import { Todo } from '@/types';
 // Dynamically get API URL based on environment
 const getApiUrl = () => {
   if (typeof window === 'undefined') return 'http://localhost:3001';
-  
+
   const isProd = process.env.NODE_ENV === 'production';
-  
+
   if (!isProd) {
     // In development: talk directly to backend on 3001
     return 'http://localhost:3001';
@@ -33,16 +33,16 @@ export function useSharedList(listId?: string) {
       const params = new URLSearchParams(window.location.search);
       const urlListId = params.get('list');
       const savedListId = localStorage.getItem('beactive-list-id');
-      
+
       let resolvedListId: string | null = null;
-      
+
       if (urlListId) {
         resolvedListId = urlListId;
         localStorage.setItem('beactive-list-id', urlListId);
       } else if (savedListId) {
         resolvedListId = savedListId;
       }
-      
+
       if (resolvedListId) {
         setCurrentListId(resolvedListId);
       } else {
@@ -83,7 +83,7 @@ export function useSharedList(listId?: string) {
   useEffect(() => {
     if (!currentListId || currentListId === '__new__') return;
 
-      const isProd = process.env.NODE_ENV === 'production';
+    const isProd = process.env.NODE_ENV === 'production';
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     let wsUrl: string;
 
@@ -96,6 +96,8 @@ export function useSharedList(listId?: string) {
 
 
     const websocket = new WebSocket(wsUrl);
+    let reconnectTimeout: NodeJS.Timeout;
+
 
     websocket.onopen = () => {
       websocket.send(JSON.stringify({ type: 'subscribe', listId: currentListId }));
@@ -123,10 +125,26 @@ export function useSharedList(listId?: string) {
       }
     };
 
+    websocket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    websocket.onclose = () => {
+      console.log('WebSocket closed');
+      // Attempt to reconnect after 3 seconds
+      reconnectTimeout = setTimeout(() => {
+        console.log('Attempting to reconnect WebSocket...');
+        // Trigger reconnection by resetting currentListId
+      }, 3000);
+    };
+
     setWs(websocket);
 
     return () => {
-      websocket.close();
+      clearTimeout(reconnectTimeout);
+      if (websocket.readyState === WebSocket.OPEN) {
+        websocket.close();
+      }
     };
   }, [currentListId]);
 

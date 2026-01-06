@@ -26,4 +26,4 @@ EXPOSE 8080
 
 ENV NODE_ENV=production
 
-CMD /bin/sh -c "PORT=3000 npm start & PORT=3001 npx tsx server/index.ts & nginx; wait"
+CMD /bin/sh -c "PORT=3000 npm start & PORT=3001 npx tsx server/index.ts & nginx -g 'daemon off;'; wait"

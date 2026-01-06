@@ -22,6 +22,12 @@ const listSubscribers = new Map<string, Set<any>>();
 wss.on('connection', (ws: any) => {
   let currentListId: string | null = null;
 
+    // Handle errors gracefully
+  ws.on('error', (error: any) => {
+    console.error('WebSocket error:', error.code, error.message);
+    // Don't rethrow - just log and continue
+  });
+
   ws.on('message', (message: string) => {
     try {
       const data = JSON.parse(message);
