@@ -1,27 +1,29 @@
-# Use official Node.js image
-FROM node:20-alpine
+FROM node:20-alpine AS builder
 
-# Set working directory
+RUN apk add --no-cache python3 make g++ sqlite-dev
+
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install all dependencies (including dev deps for building)
-RUN npm ci
-
-# Copy source code
 COPY . .
 
-# Build Next.js
+RUN npm ci
+RUN npm rebuild better-sqlite3
 RUN npm run build
-
-# Remove development dependencies to reduce image size
 RUN npm prune --production
 
-# Expose port 8080 (frontend) and 3001 (backend)
-EXPOSE 8080
-EXPOSE 3001
+# Final stage
+FROM node:20-alpine
 
-# Run both services concurrently: frontend on 8080, backend on 3001
-CMD /bin/sh -c "PORT=8080 npm run start & PORT=3001 npx tsx server/index.ts"
+RUN apk add --no-cache nginx sqlite-dev
+
+WORKDIR /app
+
+COPY --from=builder /app /app
+
+COPY nginx.conf /etc/nginx/http.d/default.conf
+
+EXPOSE 8080
+
+ENV NODE_ENV=production
+
+CMD /bin/sh -c "PORT=3000 npm start & PORT=3001 npx tsx server/index.ts & nginx; wait"

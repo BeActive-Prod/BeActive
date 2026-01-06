@@ -3,19 +3,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Todo } from '@/types';
 
-// Dynamically get API URL based on the current host
+// Dynamically get API URL based on environment
 const getApiUrl = () => {
   if (typeof window === 'undefined') return 'http://localhost:3001';
   
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  // Replace localhost with the actual IP for cross-device access
-  const host = hostname === 'localhost' || hostname === '127.0.0.1' 
-    ? '192.168.1.20' // Your laptop's IP from earlier output
-    : hostname;
+  const isProd = process.env.NODE_ENV === 'production';
   
-  return `${protocol}//${host}:3001`;
+  if (!isProd) {
+    // In development: talk directly to backend on 3001
+    return 'http://localhost:3001';
+  } else {
+    // In production: use the proxy through Next.js
+    return window.location.origin;
+  }
 };
+
 
 const API_URL = getApiUrl();
 
@@ -81,12 +83,18 @@ export function useSharedList(listId?: string) {
   useEffect(() => {
     if (!currentListId || currentListId === '__new__') return;
 
+      const isProd = process.env.NODE_ENV === 'production';
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const hostname = window.location.hostname;
-    const host = hostname === 'localhost' || hostname === '127.0.0.1' 
-      ? '192.168.1.20'
-      : hostname;
-    const wsUrl = `${wsProtocol}//${host}:3001`;
+    let wsUrl: string;
+
+    if (!isProd) {
+      wsUrl = `${wsProtocol}//localhost:3001`;
+    } else {
+      // In production: use the Nginx proxy
+      wsUrl = `${wsProtocol}//${window.location.host}/api/ws`;
+    }
+
+
     const websocket = new WebSocket(wsUrl);
 
     websocket.onopen = () => {

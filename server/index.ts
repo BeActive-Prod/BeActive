@@ -61,6 +61,11 @@ function broadcastToList(listId: string, message: any) {
   }
 }
 
+// Test API endpoint
+app.get('/api/test', (req: any, res: any) => {
+   res.json({ message: 'API test successful', timestamp: new Date().toISOString() });
+ });
+
 // Create or get list
 app.post('/api/lists', (req: any, res: any) => {
   const { id, name } = req.body;
