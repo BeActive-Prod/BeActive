@@ -5,6 +5,7 @@ import TodoList from '@/components/TodoList';
 import AddTodoModal from '@/components/AddTodoModal';
 import ShareModal from '@/components/ShareModal';
 import SettingsModal from '@/components/SettingsModal';
+import ActionMenu from '@/components/ActionMenu';
 import { useSharedList } from '@/hooks/useSharedList';
 
 export default function Home() {
@@ -161,22 +162,8 @@ export default function Home() {
         </div>
 
         {/* Share Button - Fixed to side */}
-        <button
-          onClick={() => setShowShareModal(true)}
-          className="fixed top-6 right-6 z-40 px-4 py-2 bg-slate-700 border border-slate-600 text-gray-300 font-semibold rounded-lg hover:bg-slate-600 transition-all"
-          title="Share this list"
-        >
-          🔗 Share
-        </button>
-
         {/* Settings Button - Fixed to side below share */}
-        <button
-          onClick={() => setShowSettingsModal(true)}
-          className="fixed top-20 right-6 z-40 px-4 py-2 bg-slate-700 border border-slate-600 text-gray-300 font-semibold rounded-lg hover:bg-slate-600 transition-all"
-          title="Settings"
-        >
-          ⚙️ Settings
-        </button>
+        {/* Floating Action Button - REPLACED WITH UNIFIED MENU */}
 
         {/* Main content - starts at top */}
         <div className="mt-2">
@@ -188,16 +175,13 @@ export default function Home() {
             apiUrl={apiUrl}
           />
         </div>
-
-        {/* Floating Action Button - Large with Text */}
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="fixed bottom-8 right-8 px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-bold rounded-full hover:from-purple-700 hover:to-purple-600 transition-all duration-200 transform hover:scale-110 shadow-lg text-lg flex items-center gap-2"
-          title="Add new task"
-        >
-          <span className="text-2xl">+</span>
-          New Task
-        </button>
+        
+        {/* Unified Action Menu */}
+        <ActionMenu
+          onNewTask={() => setShowAddModal(true)}
+          onShare={() => setShowShareModal(true)}
+          onSettings={() => setShowSettingsModal(true)}
+        />
 
         {showAddModal && (
           <AddTodoModal 
