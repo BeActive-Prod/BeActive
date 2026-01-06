@@ -11,6 +11,8 @@ on:
 jobs:
   docker:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       -
         name: Login to Github Repositories
@@ -30,4 +32,4 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: user/app:latest
+          tags: ghcr.io/simon-dmsn/beactive:latest
