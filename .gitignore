@@ -16,9 +16,14 @@
 # next.js
 /.next/
 /out/
+/dist/
 
 # production
 /build
+
+# database
+*.db
+beactive.db
 
 # misc
 .DS_Store
@@ -39,3 +44,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.iml
+
+# OS
+Thumbs.db
+
+# build cache
+.turbo
