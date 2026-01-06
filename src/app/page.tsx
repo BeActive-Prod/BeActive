@@ -22,6 +22,38 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    // Keyboard shortcut: Escape to close any open modal
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowAddModal(false);
+        setShowShareModal(false);
+        setShowSettingsModal(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  useEffect(() => {
+    // Keyboard shortcut: 'n' to create new task
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only trigger if not typing in an input/textarea and no modal is already open
+      if ((e.key === 'n' || e.key === 'N') && !showAddModal && !showShareModal && !showSettingsModal) {
+        const target = e.target as HTMLElement;
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          setShowAddModal(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [showAddModal, showShareModal, showSettingsModal]);
+
+  useEffect(() => {
     if (currentListId && currentListId !== '__new__') {
       fetch(`${apiUrl}/api/lists/${currentListId}/rollover`)
         .then(res => res.json())
