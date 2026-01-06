@@ -80,15 +80,21 @@ export default function Home() {
     const deadlineAInSeconds = a.deadlineHour * 3600 + a.deadlineMinute * 60;
     let differenceA;
     if (nowInSeconds < rolloverInSeconds) {
+      // Before rollover
       if (deadlineAInSeconds >= rolloverInSeconds) {
-        differenceA = deadlineAInSeconds - nowInSeconds;
+        // Task is after rollover (belongs to yesterday)
+        differenceA = (deadlineAInSeconds - 24 * 3600) - nowInSeconds;
       } else {
+        // Task is before rollover (today)
         differenceA = deadlineAInSeconds - nowInSeconds;
       }
     } else {
+      // After rollover (today)
       if (deadlineAInSeconds >= rolloverInSeconds) {
+        // Task is also after rollover (today)
         differenceA = deadlineAInSeconds - nowInSeconds;
       } else {
+        // Task is before rollover (tomorrow)
         differenceA = (deadlineAInSeconds + 24 * 3600) - nowInSeconds;
       }
     }
@@ -97,20 +103,26 @@ export default function Home() {
     const deadlineBInSeconds = b.deadlineHour * 3600 + b.deadlineMinute * 60;
     let differenceB;
     if (nowInSeconds < rolloverInSeconds) {
+      // Before rollover
       if (deadlineBInSeconds >= rolloverInSeconds) {
-        differenceB = deadlineBInSeconds - nowInSeconds;
+        // Task is after rollover (belongs to yesterday)
+        differenceB = (deadlineBInSeconds - 24 * 3600) - nowInSeconds;
       } else {
+        // Task is before rollover (today)
         differenceB = deadlineBInSeconds - nowInSeconds;
       }
     } else {
+      // After rollover (today)
       if (deadlineBInSeconds >= rolloverInSeconds) {
+        // Task is also after rollover (today)
         differenceB = deadlineBInSeconds - nowInSeconds;
       } else {
+        // Task is before rollover (tomorrow)
         differenceB = (deadlineBInSeconds + 24 * 3600) - nowInSeconds;
       }
     }
 
-    // Sort by time remaining (closest deadline first, or longest overdue first)
+    // Sort by time remaining (most overdue first, then least time remaining)
     return differenceA - differenceB;
   });
 
