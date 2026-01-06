@@ -36,16 +36,50 @@ export default function Home() {
   }, [currentListId, apiUrl]);
 
   const sortedTodos = [...todos].sort((a, b) => {
-    const rolloverInMinutes = rolloverHour * 60 + rolloverMinute;
-    const timeA = a.deadlineHour * 60 + a.deadlineMinute;
-    const timeB = b.deadlineHour * 60 + b.deadlineMinute;
-    
-    // Calculate time since rollover for each task
-    // If time is before rollover, add 24 hours (next day)
-    const aSinceRollover = timeA >= rolloverInMinutes ? timeA - rolloverInMinutes : timeA + 24 * 60 - rolloverInMinutes;
-    const bSinceRollover = timeB >= rolloverInMinutes ? timeB - rolloverInMinutes : timeB + 24 * 60 - rolloverInMinutes;
-    
-    return aSinceRollover - bSinceRollover;
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentSeconds = now.getSeconds();
+
+    const rolloverInSeconds = rolloverHour * 3600 + rolloverMinute * 60;
+    const nowInSeconds = currentHour * 3600 + currentMinute * 60 + currentSeconds;
+
+    // Calculate time remaining for task A
+    const deadlineAInSeconds = a.deadlineHour * 3600 + a.deadlineMinute * 60;
+    let differenceA;
+    if (nowInSeconds < rolloverInSeconds) {
+      if (deadlineAInSeconds >= rolloverInSeconds) {
+        differenceA = deadlineAInSeconds - nowInSeconds;
+      } else {
+        differenceA = deadlineAInSeconds - nowInSeconds;
+      }
+    } else {
+      if (deadlineAInSeconds >= rolloverInSeconds) {
+        differenceA = deadlineAInSeconds - nowInSeconds;
+      } else {
+        differenceA = (deadlineAInSeconds + 24 * 3600) - nowInSeconds;
+      }
+    }
+
+    // Calculate time remaining for task B
+    const deadlineBInSeconds = b.deadlineHour * 3600 + b.deadlineMinute * 60;
+    let differenceB;
+    if (nowInSeconds < rolloverInSeconds) {
+      if (deadlineBInSeconds >= rolloverInSeconds) {
+        differenceB = deadlineBInSeconds - nowInSeconds;
+      } else {
+        differenceB = deadlineBInSeconds - nowInSeconds;
+      }
+    } else {
+      if (deadlineBInSeconds >= rolloverInSeconds) {
+        differenceB = deadlineBInSeconds - nowInSeconds;
+      } else {
+        differenceB = (deadlineBInSeconds + 24 * 3600) - nowInSeconds;
+      }
+    }
+
+    // Sort by time remaining (closest deadline first, or longest overdue first)
+    return differenceA - differenceB;
   });
 
   const handleToggleTodo = (id: string) => {
