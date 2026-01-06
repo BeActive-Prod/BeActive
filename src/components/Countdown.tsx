@@ -76,10 +76,12 @@ export default function Countdown({
       // Completed before rollover (e.g., 2 AM when rollover is 4 AM)
       // This is still "yesterday's day"
       if (deadlineInSeconds >= rolloverInSeconds) {
-        // Deadline is after rollover, so it was "today" - completed early
-        timeDiff = deadlineInSeconds - completedInSeconds;
+        // Deadline is after rollover (e.g., 8 PM)
+        // This deadline belongs to yesterday, so subtract 24 hours
+        timeDiff = (deadlineInSeconds - 24 * 3600) - completedInSeconds;
       } else {
-        // Deadline is also before rollover, simple comparison
+        // Deadline is before rollover (e.g., 1 AM)
+        // Same app-day, simple comparison
         timeDiff = deadlineInSeconds - completedInSeconds;
       }
     } else {

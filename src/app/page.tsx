@@ -22,6 +22,38 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    // Keyboard shortcut: Escape to close any open modal
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowAddModal(false);
+        setShowShareModal(false);
+        setShowSettingsModal(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  useEffect(() => {
+    // Keyboard shortcut: 'n' to create new task
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only trigger if not typing in an input/textarea and no modal is already open
+      if ((e.key === 'n' || e.key === 'N') && !showAddModal && !showShareModal && !showSettingsModal) {
+        const target = e.target as HTMLElement;
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          setShowAddModal(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [showAddModal, showShareModal, showSettingsModal]);
+
+  useEffect(() => {
     if (currentListId && currentListId !== '__new__') {
       fetch(`${apiUrl}/api/lists/${currentListId}/rollover`)
         .then(res => res.json())
@@ -36,16 +68,62 @@ export default function Home() {
   }, [currentListId, apiUrl]);
 
   const sortedTodos = [...todos].sort((a, b) => {
-    const rolloverInMinutes = rolloverHour * 60 + rolloverMinute;
-    const timeA = a.deadlineHour * 60 + a.deadlineMinute;
-    const timeB = b.deadlineHour * 60 + b.deadlineMinute;
-    
-    // Calculate time since rollover for each task
-    // If time is before rollover, add 24 hours (next day)
-    const aSinceRollover = timeA >= rolloverInMinutes ? timeA - rolloverInMinutes : timeA + 24 * 60 - rolloverInMinutes;
-    const bSinceRollover = timeB >= rolloverInMinutes ? timeB - rolloverInMinutes : timeB + 24 * 60 - rolloverInMinutes;
-    
-    return aSinceRollover - bSinceRollover;
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentSeconds = now.getSeconds();
+
+    const rolloverInSeconds = rolloverHour * 3600 + rolloverMinute * 60;
+    const nowInSeconds = currentHour * 3600 + currentMinute * 60 + currentSeconds;
+
+    // Calculate time remaining for task A
+    const deadlineAInSeconds = a.deadlineHour * 3600 + a.deadlineMinute * 60;
+    let differenceA;
+    if (nowInSeconds < rolloverInSeconds) {
+      // Before rollover
+      if (deadlineAInSeconds >= rolloverInSeconds) {
+        // Task is after rollover (belongs to yesterday)
+        differenceA = (deadlineAInSeconds - 24 * 3600) - nowInSeconds;
+      } else {
+        // Task is before rollover (today)
+        differenceA = deadlineAInSeconds - nowInSeconds;
+      }
+    } else {
+      // After rollover (today)
+      if (deadlineAInSeconds >= rolloverInSeconds) {
+        // Task is also after rollover (today)
+        differenceA = deadlineAInSeconds - nowInSeconds;
+      } else {
+        // Task is before rollover (tomorrow)
+        differenceA = (deadlineAInSeconds + 24 * 3600) - nowInSeconds;
+      }
+    }
+
+    // Calculate time remaining for task B
+    const deadlineBInSeconds = b.deadlineHour * 3600 + b.deadlineMinute * 60;
+    let differenceB;
+    if (nowInSeconds < rolloverInSeconds) {
+      // Before rollover
+      if (deadlineBInSeconds >= rolloverInSeconds) {
+        // Task is after rollover (belongs to yesterday)
+        differenceB = (deadlineBInSeconds - 24 * 3600) - nowInSeconds;
+      } else {
+        // Task is before rollover (today)
+        differenceB = deadlineBInSeconds - nowInSeconds;
+      }
+    } else {
+      // After rollover (today)
+      if (deadlineBInSeconds >= rolloverInSeconds) {
+        // Task is also after rollover (today)
+        differenceB = deadlineBInSeconds - nowInSeconds;
+      } else {
+        // Task is before rollover (tomorrow)
+        differenceB = (deadlineBInSeconds + 24 * 3600) - nowInSeconds;
+      }
+    }
+
+    // Sort by time remaining (most overdue first, then least time remaining)
+    return differenceA - differenceB;
   });
 
   const handleToggleTodo = (id: string) => {

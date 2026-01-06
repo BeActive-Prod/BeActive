@@ -60,13 +60,14 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
       // Determine if we're before or after rollover time
       if (nowInSeconds < rolloverInSeconds) {
         // We're before rollover (e.g., 2 AM when rollover is 4 AM)
-        // This is still "yesterday's day" in app terms
+        // We're still in yesterday's app-day (started at rollover yesterday)
         if (deadlineInSeconds >= rolloverInSeconds) {
-          // Deadline is later in the day (after rollover), so it's "today"
-          difference = deadlineInSeconds - nowInSeconds;
+          // Deadline is after rollover (e.g., 8 PM)
+          // This task belongs to yesterday, so subtract 24 hours for comparison
+          difference = (deadlineInSeconds - 24 * 3600) - nowInSeconds;
         } else {
-          // Deadline is before rollover (same period as now), so it was "yesterday"
-          // It's overdue (negative value)
+          // Deadline is before rollover (e.g., 1 AM)
+          // This task is from today (before we hit rollover)
           difference = deadlineInSeconds - nowInSeconds;
         }
       } else {
