@@ -46,9 +46,9 @@ services:
 ```
 
 2. **Start BeActive:**
-
+```bash
 docker-compose up -d
-
+```
 3. **Access the app:**
 
 Open your browser and navigate to:
@@ -56,9 +56,9 @@ Open your browser and navigate to:
 - **Custom port**: `http://localhost:YOUR_PORT`
 
 ### Stopping BeActive
-
+```bash
 docker-compose down
-
+```
 ---
 
 ## Usage Guide 📖
