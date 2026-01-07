@@ -10,15 +10,16 @@ const getApiUrl = () => {
   const isProd = process.env.NODE_ENV === 'production';
 
   if (!isProd) {
-    // In development: talk directly to backend on 3001
-    return 'http://localhost:3001';
+    // In development: use the same host as the frontend, but on port 3001
+    const host = window.location.hostname;
+    return `http://${host}:3001`;
   } else {
     // In production: use the proxy through Next.js
     return window.location.origin;
   }
 };
 
-const API_URL = getApiUrl();
+// Don't call getApiUrl at module level - it will be called when needed
 
 export function useSharedList(listId?: string) {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -59,26 +60,38 @@ export function useSharedList(listId?: string) {
   useEffect(() => {
     if (!isInitialized || !currentListId) return;
 
+    const apiUrl = getApiUrl();
+    console.log('🔄 Initializing list:', currentListId, 'API URL:', apiUrl);
+
     if (currentListId === '__new__') {
       // Create new list on first load
-      fetch(`${API_URL}/api/lists`, {
+      fetch(`${apiUrl}/api/lists`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'My Tasks' }),
       })
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
         .then((data) => {
+          console.log('✅ New list created:', data.id);
           setCurrentListId(data.id);
           localStorage.setItem('beactive-list-id', data.id);
-        });
+        })
+        .catch((e) => console.error('❌ Failed to create list:', e));
     } else {
       // Fetch existing list
-      fetch(`${API_URL}/api/lists/${currentListId}`)
-        .then((res) => res.json())
+      fetch(`${apiUrl}/api/lists/${currentListId}`)
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
         .then((data) => {
+          console.log('✅ Fetched list with', data.todos?.length || 0, 'todos');
           setTodos(data.todos || []);
         })
-        .catch((e) => console.error('Failed to fetch list:', e));
+        .catch((e) => console.error('❌ Failed to fetch list:', e));
     }
   }, [isInitialized, currentListId]);
 
@@ -91,7 +104,9 @@ export function useSharedList(listId?: string) {
     let wsUrl: string;
 
     if (!isProd) {
-      wsUrl = `${wsProtocol}//localhost:3001/api/ws`;
+      // In development: use the same host as the frontend, but on port 3001
+      const host = window.location.hostname;
+      wsUrl = `${wsProtocol}//${host}:3001/api/ws`;
     } else {
       // In production: use the Nginx proxy
       wsUrl = `${wsProtocol}//${window.location.host}/api/ws`;
@@ -122,7 +137,8 @@ export function useSharedList(listId?: string) {
             setTodos((prev) => prev.filter((t) => t.id !== data.id));
           } else if (data.type === 'rollover') {
             // Rollover happened - refresh all todos
-            fetch(`${API_URL}/api/lists/${currentListId}`)
+            const apiUrl = getApiUrl();
+            fetch(`${apiUrl}/api/lists/${currentListId}`)
               .then((res) => res.json())
               .then((listData) => {
                 setTodos(listData.todos || []);
@@ -206,7 +222,8 @@ export function useSharedList(listId?: string) {
     (title: string, deadlineHour: number, deadlineMinute: number) => {
       if (!currentListId) return;
 
-      fetch(`${API_URL}/api/lists/${currentListId}/todos`, {
+      const apiUrl = getApiUrl();
+      fetch(`${apiUrl}/api/lists/${currentListId}/todos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, deadlineHour, deadlineMinute }),
@@ -217,7 +234,8 @@ export function useSharedList(listId?: string) {
 
   const updateTodo = useCallback(
     (id: string, updates: Partial<Todo>) => {
-      fetch(`${API_URL}/api/todos/${id}`, {
+      const apiUrl = getApiUrl();
+      fetch(`${apiUrl}/api/todos/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
@@ -227,7 +245,8 @@ export function useSharedList(listId?: string) {
   );
 
   const deleteTodo = useCallback((id: string) => {
-    fetch(`${API_URL}/api/todos/${id}`, { method: 'DELETE' });
+    const apiUrl = getApiUrl();
+    fetch(`${apiUrl}/api/todos/${id}`, { method: 'DELETE' });
   }, []);
 
   const generateShareLink = useCallback(() => {
@@ -250,7 +269,7 @@ export function useSharedList(listId?: string) {
     generateShareLink,
     currentListId,
     isSharedList: isSharedList(),
-    apiUrl: API_URL,
+    apiUrl: getApiUrl(),
     isConnected,
   };
 }
