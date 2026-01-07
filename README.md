@@ -83,7 +83,7 @@ docker-compose down
 
 ---
 
-## Configuration 🔧
+## Configuration
 
 ### Environment Variables
 
@@ -95,7 +95,7 @@ Current deployment uses default settings. Custom environment configuration comin
 
 ---
 
-## Development 💻
+## Development
 
 ### Local Development Setup
 
@@ -112,7 +112,7 @@ docker run -p 8080:8080 beactive:latest
 
 ---
 
-## License 📄
+## License
 
 This project is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License - see the LICENSE file for details.
 
