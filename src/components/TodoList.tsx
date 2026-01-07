@@ -3,24 +3,25 @@
 import { useState, useEffect } from 'react';
 import { Todo } from '@/types';
 import TodoItem from './TodoItem';
+import { getApiUrl } from '@/utils/apiUrl';
 
 interface TodoListProps {
   todos: Todo[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   listId: string;
-  apiUrl: string;
+  apiUrl?: string;
   readOnly?: boolean;
 }
 
-export default function TodoList({ todos, onToggle, onDelete, listId, apiUrl, readOnly = false }: TodoListProps) {
+export default function TodoList({ todos, onToggle, onDelete, listId, readOnly = false }: TodoListProps) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [rolloverHour, setRolloverHour] = useState(4);
   const [rolloverMinute, setRolloverMinute] = useState(0);
 
   useEffect(() => {
     if (listId && listId !== '__new__') {
-      fetch(`${apiUrl}/api/lists/${listId}/rollover`)
+      fetch(`${getApiUrl()}/api/lists/${listId}/rollover`)
         .then(res => res.json())
         .then(data => {
           setRolloverHour(data.rolloverHour);
@@ -30,7 +31,7 @@ export default function TodoList({ todos, onToggle, onDelete, listId, apiUrl, re
           // Default values already set
         });
     }
-  }, [listId, apiUrl]);
+  }, [listId]);
 
   const activeTodos = todos.filter(t => !t.completed);
   const completedTodos = todos.filter(t => t.completed);

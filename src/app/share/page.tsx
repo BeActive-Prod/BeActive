@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import TodoList from '@/components/TodoList';
 import { Todo } from '@/types';
+import { getApiUrl } from '@/utils/apiUrl';
 
 export default function SharePage() {
   const searchParams = useSearchParams();
@@ -14,8 +15,6 @@ export default function SharePage() {
   const [rolloverHour, setRolloverHour] = useState(4);
   const [rolloverMinute, setRolloverMinute] = useState(0);
   const [mounted, setMounted] = useState(false);
-
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
     setMounted(true);
@@ -28,7 +27,7 @@ export default function SharePage() {
     const fetchList = async () => {
       try {
         setError(null);
-        const response = await fetch(`${apiUrl}/api/lists/${listId}`);
+        const response = await fetch(`${getApiUrl()}/api/lists/${listId}`);
 
         if (!response.ok) {
           throw new Error('List not found or is not public');
@@ -49,7 +48,7 @@ export default function SharePage() {
     };
 
     fetchList();
-  }, [listId, mounted, apiUrl]);
+  }, [listId, mounted]);
 
   const sortedTodos = [...todos].sort((a, b) => {
     const now = new Date();
@@ -139,7 +138,6 @@ export default function SharePage() {
           onToggle={() => {}} // Shared lists are read-only
           onDelete={() => {}} // Shared lists are read-only
           listId={listId || ''}
-          apiUrl={apiUrl}
           readOnly={true}
         />
       </div>

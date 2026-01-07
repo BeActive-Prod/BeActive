@@ -235,7 +235,7 @@ export function useSharedList(listId?: string) {
   const generateShareLink = useCallback(() => {
     if (!currentListId || currentListId === '__new__') return '';
     const baseUrl = window.location.origin;
-    return `${baseUrl}?list=${currentListId}`;
+    return `${baseUrl}/share?list=${currentListId}`;
   }, [currentListId]);
 
   const isSharedList = useCallback(() => {

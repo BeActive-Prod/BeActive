@@ -37,12 +37,18 @@ export default function ShareModal({ shareLink, onClose }: ShareModalProps) {
         <h2 className="text-2xl font-bold text-white mb-3">Share Your Task List</h2>
         
         <p className="text-gray-300 mb-4 text-sm sm:text-base">
-          Share this link with someone to sync your task list:
+          Share this link with someone to show them your task list:
         </p>
+
+
 
         <div className="bg-slate-700 rounded-lg p-4 mb-4 break-all">
           <p className="text-sm text-purple-300 font-mono">{shareLink}</p>
         </div>
+
+        <p className="text-gray-400 mb-6 text-sm sm:text-base">
+          Note: this is a public link. Anyone with the link can view your tasks, but in read-only mode.
+        </p>
 
         <div className="flex flex-col sm:flex-row gap-3">
           <button
