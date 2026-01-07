@@ -50,7 +50,7 @@ export default function SettingsModal({ onClose, listId, apiUrl }: SettingsModal
       onClick={onClose}
     >
       <div
-        className="bg-slate-800 rounded-2xl p-8 max-w-md w-full shadow-2xl border-2 border-slate-700"
+        className="bg-slate-800 rounded-2xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border-2 border-slate-700"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-2xl font-bold text-white mb-2">Settings</h2>
@@ -78,7 +78,7 @@ export default function SettingsModal({ onClose, listId, apiUrl }: SettingsModal
               </p>
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 onClick={onClose}
                 className="flex-1 px-4 py-3 rounded-lg bg-slate-700 text-white font-semibold hover:bg-slate-600 transition-colors"

@@ -43,11 +43,11 @@ export default function TodoList({ todos, onToggle, onDelete, listId, apiUrl }: 
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Next Due Task - Prominently Displayed */}
       {activeTodos.length > 0 && (
-        <div className="mb-8 pb-8 border-b-2 border-dashed border-purple-500/30">
-          <div className="text-lg font-semibold text-purple-400 mb-3 uppercase tracking-wider">
+        <div className="mb-6 sm:mb-8 pb-6 sm:pb-8 border-b-2 border-dashed border-purple-500/30">
+          <div className="text-base sm:text-lg font-semibold text-purple-300 mb-3 uppercase tracking-wider">
             ⭐ Next Due Task
           </div>
           <TodoItem
@@ -64,8 +64,8 @@ export default function TodoList({ todos, onToggle, onDelete, listId, apiUrl }: 
 
       {/* Remaining Active Tasks */}
       {activeTodos.length > 1 && (
-        <div className="space-y-4">
-          <div className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
+        <div className="space-y-3 sm:space-y-4">
+          <div className="text-xs font-semibold text-gray-400 mb-2 sm:mb-3 uppercase tracking-wider">
             Other Tasks
           </div>
           {activeTodos.slice(1).map(todo => (
@@ -84,7 +84,7 @@ export default function TodoList({ todos, onToggle, onDelete, listId, apiUrl }: 
 
       {/* Completed Tasks Collapsible Section */}
       {completedTodos.length > 0 && (
-        <div className="mt-8 pt-6 border-t border-slate-700">
+        <div className="mt-6 sm:mt-8 pt-6 border-t border-slate-700">
           <button
             onClick={() => setShowCompleted(!showCompleted)}
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-400 hover:text-gray-300 transition-colors"

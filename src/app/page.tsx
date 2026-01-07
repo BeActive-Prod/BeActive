@@ -146,27 +146,23 @@ export default function Home() {
   if (!mounted) return null;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Header - Fixed to side */}
-        <div className="fixed top-6 left-6 z-40">
+    <main className="min-h-screen px-4 py-5 sm:px-6 md:py-6">
+      <div className="max-w-3xl mx-auto pb-14 md:pb-0">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 mb-6 md:mb-0 md:flex-col md:fixed md:top-6 md:left-6 md:z-40">
           <div>
             <h1 className="text-3xl font-bold text-white mb-1">BeActive</h1>
-            <p className="text-sm text-purple-300">Deadline aware</p>
+            <p className="text-sm text-purple-200">Deadline aware</p>
           </div>
           {isSharedList && (
-            <div className="mt-4 px-3 py-1 bg-blue-900/50 border border-blue-500 rounded-full w-fit">
-              <span className="text-xs font-semibold text-blue-300">🔗 Shared List</span>
+            <div className="px-3 py-1 bg-blue-900/60 border border-blue-500/70 rounded-full w-fit">
+              <span className="text-xs font-semibold text-blue-200">🔗 Shared List</span>
             </div>
           )}
         </div>
 
-        {/* Share Button - Fixed to side */}
-        {/* Settings Button - Fixed to side below share */}
-        {/* Floating Action Button - REPLACED WITH UNIFIED MENU */}
-
-        {/* Main content - starts at top */}
-        <div className="mt-2">
+        {/* Main content */}
+        <div className="mt-2 md:mt-4">
           <TodoList
             todos={sortedTodos}
             onToggle={handleToggleTodo}
