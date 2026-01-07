@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Todo } from '@/types';
 
 // Dynamically get API URL based on environment
@@ -18,7 +18,6 @@ const getApiUrl = () => {
   }
 };
 
-
 const API_URL = getApiUrl();
 
 export function useSharedList(listId?: string) {
@@ -26,6 +25,10 @@ export function useSharedList(listId?: string) {
   const [currentListId, setCurrentListId] = useState<string | null>(null);
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check URL params and localStorage on mount
   useEffect(() => {
@@ -79,8 +82,8 @@ export function useSharedList(listId?: string) {
     }
   }, [isInitialized, currentListId]);
 
-  // WebSocket connection
-  useEffect(() => {
+  // Connect WebSocket
+  const connectWebSocket = useCallback(() => {
     if (!currentListId || currentListId === '__new__') return;
 
     const isProd = process.env.NODE_ENV === 'production';
@@ -88,65 +91,116 @@ export function useSharedList(listId?: string) {
     let wsUrl: string;
 
     if (!isProd) {
-      wsUrl = `${wsProtocol}//localhost:3001`;
+      wsUrl = `${wsProtocol}//localhost:3001/api/ws`;
     } else {
       // In production: use the Nginx proxy
       wsUrl = `${wsProtocol}//${window.location.host}/api/ws`;
     }
 
+    try {
+      const websocket = new WebSocket(wsUrl);
 
-    const websocket = new WebSocket(wsUrl);
-    let reconnectTimeout: NodeJS.Timeout;
+      websocket.onopen = () => {
+        console.log('✅ WebSocket connected');
+        setIsConnected(true);
+        wsRef.current = websocket;
+        setWs(websocket);
+        websocket.send(JSON.stringify({ type: 'subscribe', listId: currentListId }));
+      };
 
+      websocket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
 
-    websocket.onopen = () => {
-      websocket.send(JSON.stringify({ type: 'subscribe', listId: currentListId }));
-    };
+          if (data.type === 'todo-added') {
+            setTodos((prev) => [data.todo, ...prev]);
+          } else if (data.type === 'todo-updated') {
+            setTodos((prev) =>
+              prev.map((t) => (t.id === data.todo.id ? data.todo : t))
+            );
+          } else if (data.type === 'todo-deleted') {
+            setTodos((prev) => prev.filter((t) => t.id !== data.id));
+          } else if (data.type === 'rollover') {
+            // Rollover happened - refresh all todos
+            fetch(`${API_URL}/api/lists/${currentListId}`)
+              .then((res) => res.json())
+              .then((listData) => {
+                setTodos(listData.todos || []);
+              })
+              .catch((e) => console.error('Failed to refresh after rollover:', e));
+          }
+        } catch (e) {
+          console.error('Failed to parse WebSocket message:', e);
+        }
+      };
 
-    websocket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      websocket.onerror = (error) => {
+        console.error('❌ WebSocket error:', error);
+        setIsConnected(false);
+      };
 
-      if (data.type === 'todo-added') {
-        setTodos((prev) => [data.todo, ...prev]);
-      } else if (data.type === 'todo-updated') {
-        setTodos((prev) =>
-          prev.map((t) => (t.id === data.todo.id ? data.todo : t))
-        );
-      } else if (data.type === 'todo-deleted') {
-        setTodos((prev) => prev.filter((t) => t.id !== data.id));
-      } else if (data.type === 'rollover') {
-        // Rollover happened - refresh all todos
-        fetch(`${API_URL}/api/lists/${currentListId}`)
-          .then((res) => res.json())
-          .then((listData) => {
-            setTodos(listData.todos || []);
-          })
-          .catch((e) => console.error('Failed to refresh after rollover:', e));
-      }
-    };
+      websocket.onclose = () => {
+        console.log('⚠️ WebSocket closed');
+        setIsConnected(false);
+        wsRef.current = null;
 
-    websocket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
+        // Attempt to reconnect after 3 seconds
+        reconnectTimeoutRef.current = setTimeout(() => {
+          console.log('🔄 Attempting to reconnect WebSocket...');
+          connectWebSocket();
+        }, 3000);
+      };
+    } catch (e) {
+      console.error('Failed to create WebSocket:', e);
+      setIsConnected(false);
+    }
+  }, [currentListId]);
 
-    websocket.onclose = () => {
-      console.log('WebSocket closed');
-      // Attempt to reconnect after 3 seconds
-      reconnectTimeout = setTimeout(() => {
-        console.log('Attempting to reconnect WebSocket...');
-        // Trigger reconnection by resetting currentListId
-      }, 3000);
-    };
+  // WebSocket connection effect
+  useEffect(() => {
+    if (!currentListId || currentListId === '__new__') return;
 
-    setWs(websocket);
+    connectWebSocket();
 
     return () => {
-      clearTimeout(reconnectTimeout);
-      if (websocket.readyState === WebSocket.OPEN) {
-        websocket.close();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
       }
     };
-  }, [currentListId]);
+  }, [currentListId, connectWebSocket]);
+
+  // Handle page visibility - reconnect when user returns to the page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('👁️ Page is now visible - checking WebSocket connection');
+
+        // If WebSocket is closed, reconnect immediately
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+          console.log('🔄 WebSocket not connected, reconnecting...');
+
+          // Clear any pending reconnection timeout
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+
+          // Reconnect immediately
+          connectWebSocket();
+        } else {
+          console.log('✅ WebSocket already connected');
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [connectWebSocket]);
 
   const addTodo = useCallback(
     (title: string, deadlineHour: number, deadlineMinute: number) => {
@@ -197,5 +251,6 @@ export function useSharedList(listId?: string) {
     currentListId,
     isSharedList: isSharedList(),
     apiUrl: API_URL,
+    isConnected,
   };
 }
