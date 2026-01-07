@@ -4,8 +4,11 @@ name: Manual Docker Image Update
 
 # Controls when the action will run. Workflow runs when manually triggered using the UI
 # or API.
+# on push runs the action when a push occurs on the selected branches.
 on:
-  workflow_dispatch:
+  push:
+    branches:
+    - main
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
