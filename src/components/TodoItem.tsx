@@ -11,9 +11,10 @@ interface TodoItemProps {
   isNextDue?: boolean;
   rolloverHour?: number;
   rolloverMinute?: number;
+  readOnly?: boolean;
 }
 
-export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, rolloverHour = 4, rolloverMinute = 0 }: TodoItemProps) {
+export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, rolloverHour = 4, rolloverMinute = 0, readOnly = false }: TodoItemProps) {
   const [timeUntilDeadline, setTimeUntilDeadline] = useState<number>(0);
   const [isCaution, setIsCaution] = useState(false);
   const [isUrgent, setIsUrgent] = useState(false);
@@ -454,6 +455,7 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
         type="checkbox"
         checked={todo.completed}
         onChange={() => {
+          if (readOnly) return;
           if (!todo.completed) {
             // Trigger pop animation
             setIsPopping(true);
@@ -467,7 +469,8 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
             onToggle(todo.id);
           }
         }}
-        className="w-6 h-6 rounded cursor-pointer accent-purple-500"
+        disabled={readOnly}
+        className={`w-6 h-6 rounded ${readOnly ? 'cursor-default' : 'cursor-pointer'} accent-purple-500 disabled:opacity-60`}
       />
 
       {/* Content */}
@@ -512,23 +515,25 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
       </div>
 
       {/* Delete Button */}
-      <button
-        onClick={() => onDelete(todo.id)}
-        className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-900/30 transition-colors flex-shrink-0"
-        aria-label="Delete task"
-      >
-        <svg
-          className="w-5 h-5"
-          fill="currentColor"
-          viewBox="0 0 20 20"
+      {!readOnly && (
+        <button
+          onClick={() => onDelete(todo.id)}
+          className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-900/30 transition-colors flex-shrink-0"
+          aria-label="Delete task"
         >
-          <path
-            fillRule="evenodd"
-            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-            clipRule="evenodd"
-          />
-        </svg>
-      </button>
+          <svg
+            className="w-5 h-5"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

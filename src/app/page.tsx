@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import TodoList from '@/components/TodoList';
 import AddTodoModal from '@/components/AddTodoModal';
 import ShareModal from '@/components/ShareModal';
 import SettingsModal from '@/components/SettingsModal';
 import ActionMenu from '@/components/ActionMenu';
 import { useSharedList } from '@/hooks/useSharedList';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Home() {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -17,6 +20,8 @@ export default function Home() {
   const [rolloverMinute, setRolloverMinute] = useState(0);
   const { todos, addTodo, updateTodo, deleteTodo, generateShareLink, currentListId, isSharedList, apiUrl } =
     useSharedList();
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -158,6 +163,37 @@ export default function Home() {
             <div className="mt-4 px-3 py-1 bg-blue-900/50 border border-blue-500 rounded-full w-fit">
               <span className="text-xs font-semibold text-blue-300">🔗 Shared List</span>
             </div>
+          )}
+        </div>
+
+        {/* Top right user menu */}
+        <div className="fixed top-6 right-6 z-40 flex items-center gap-3">
+          {user && (
+            <>
+              <div className="text-right">
+                <p className="text-sm text-gray-300">{user.username}</p>
+                {user.isAdmin && (
+                  <p className="text-xs text-purple-400 font-semibold">Admin</p>
+                )}
+              </div>
+              {user.isAdmin && (
+                <Link
+                  href="/users"
+                  className="px-3 py-1.5 bg-purple-600/20 border border-purple-500 text-purple-300 rounded text-sm hover:bg-purple-600/30 transition-colors"
+                >
+                  ⚙️ Admin Panel
+                </Link>
+              )}
+              <button
+                onClick={() => {
+                  logout();
+                  router.push('/login');
+                }}
+                className="px-3 py-1.5 bg-red-600/20 border border-red-500 text-red-300 rounded text-sm hover:bg-red-600/30 transition-colors"
+              >
+                Logout
+              </button>
+            </>
           )}
         </div>
 

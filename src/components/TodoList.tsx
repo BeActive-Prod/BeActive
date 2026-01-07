@@ -10,9 +10,10 @@ interface TodoListProps {
   onDelete: (id: string) => void;
   listId: string;
   apiUrl: string;
+  readOnly?: boolean;
 }
 
-export default function TodoList({ todos, onToggle, onDelete, listId, apiUrl }: TodoListProps) {
+export default function TodoList({ todos, onToggle, onDelete, listId, apiUrl, readOnly = false }: TodoListProps) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [rolloverHour, setRolloverHour] = useState(4);
   const [rolloverMinute, setRolloverMinute] = useState(0);
@@ -58,6 +59,7 @@ export default function TodoList({ todos, onToggle, onDelete, listId, apiUrl }: 
             isNextDue={true}
             rolloverHour={rolloverHour}
             rolloverMinute={rolloverMinute}
+            readOnly={readOnly}
           />
         </div>
       )}
@@ -77,6 +79,7 @@ export default function TodoList({ todos, onToggle, onDelete, listId, apiUrl }: 
               isNextDue={false}
               rolloverHour={rolloverHour}
               rolloverMinute={rolloverMinute}
+              readOnly={readOnly}
             />
           ))}
         </div>
@@ -105,6 +108,7 @@ export default function TodoList({ todos, onToggle, onDelete, listId, apiUrl }: 
                   onDelete={onDelete}
                   rolloverHour={rolloverHour}
                   rolloverMinute={rolloverMinute}
+                  readOnly={readOnly}
                 />
               ))}
             </div>
