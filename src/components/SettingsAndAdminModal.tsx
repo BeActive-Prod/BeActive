@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import TimePicker from './TimePicker';
 import { User } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { getApiUrl } from '@/utils/apiUrl';
 
 interface SettingsAndAdminModalProps {
   onClose: () => void;
   listId: string;
-  apiUrl: string;
   token: string;
   currentUserId?: string;
   isAdmin?: boolean;
@@ -17,12 +17,12 @@ interface SettingsAndAdminModalProps {
 export default function SettingsAndAdminModal({
   onClose,
   listId,
-  apiUrl,
   token,
   currentUserId,
   isAdmin = false,
 }: SettingsAndAdminModalProps) {
   const { } = useAuth();
+  const apiUrl = getApiUrl();
   const [activeTab, setActiveTab] = useState<'settings' | 'admin'>('settings');
   const [rolloverHour, setRolloverHour] = useState(4);
   const [rolloverMinute, setRolloverMinute] = useState(0);
@@ -63,20 +63,24 @@ export default function SettingsAndAdminModal({
     const fetchUsers = async () => {
       try {
         setError(null);
-        const response = await fetch(`${apiUrl}/api/users`, {
+                const response = await fetch(`${apiUrl}/api/users`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch users');
+          const data = await response.json();
+          console.error('Users fetch error response:', data);
+          throw new Error(data.error || 'Failed to fetch users');
         }
 
         const data = await response.json();
         setUsers(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        const errorMsg = err instanceof Error ? err.message : 'An error occurred';
+        console.error('Users fetch error:', errorMsg);
+        setError(errorMsg);
       } finally {
         setUsersLoading(false);
       }

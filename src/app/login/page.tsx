@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { getApiUrl } from '@/utils/apiUrl';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -17,7 +18,7 @@ export default function LoginPage() {
   useEffect(() => {
     const checkAdmin = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        const apiUrl = getApiUrl();
         const response = await fetch(`${apiUrl}/api/auth/admin-exists`);
         const data = await response.json();
         setAdminExists(data.adminExists);

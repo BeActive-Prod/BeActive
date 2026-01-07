@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContextType } from '@/types';
+import { getApiUrl } from '@/utils/apiUrl';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -29,8 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (token && !isLoading) {
       (async () => {
         try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-          const response = await fetch(`${apiUrl}/api/auth/verify`, {
+          const response = await fetch(`${getApiUrl()}/api/auth/verify`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -48,12 +48,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token, isLoading]);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
   const login = async (username: string, password: string) => {
     try {
       setError(null);
-      const response = await fetch(`${apiUrl}/api/auth/login`, {
+      const response = await fetch(`${getApiUrl()}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -79,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setup = async (username: string, password: string) => {
     try {
       setError(null);
-      const response = await fetch(`${apiUrl}/api/auth/setup`, {
+      const response = await fetch(`${getApiUrl()}/api/auth/setup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -113,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token) return;
 
     try {
-      const response = await fetch(`${apiUrl}/api/auth/verify`, {
+      const response = await fetch(`${getApiUrl()}/api/auth/verify`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

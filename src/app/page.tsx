@@ -228,7 +228,6 @@ export default function Home() {
         {showSettingsModal && currentListId && currentListId !== '__new__' && (
           <SettingsAndAdminModal
             listId={currentListId}
-            apiUrl={apiUrl}
             token={token || ''}
             currentUserId={user?.id}
             isAdmin={user?.isAdmin || false}

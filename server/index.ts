@@ -78,7 +78,9 @@ app.get('/api/auth/admin-exists', (req: any, res: any) => {
     const admin = db.prepare('SELECT id FROM users WHERE is_admin = 1').get();
     res.json({ adminExists: !!admin });
   } catch (e) {
-    res.status(500).json({ error: (e as Error).message });
+    console.error('Admin check error:', e);
+    // If table doesn't exist, return adminExists: false (no admin)
+    res.json({ adminExists: false });
   }
 });
 
