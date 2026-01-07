@@ -443,10 +443,10 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
 
   return (
     <div
-      className={`flex items-center gap-4 rounded-lg border-2 transition-all ${getBgColor()} ${
+      className={`flex flex-row items-center gap-3 sm:gap-5 rounded-xl border-2 transition-all ${getBgColor()} ${
         isNextDue 
-          ? 'p-8 border-purple-400 shadow-2xl shadow-purple-500/40 scale-110 ring-2 ring-purple-500/30' 
-          : 'p-4'
+          ? 'p-6 sm:p-8 border-purple-400 shadow-2xl shadow-purple-500/40 sm:scale-110 ring-2 ring-purple-500/30' 
+          : 'p-3 sm:p-5'
       }`}
       style={popStyle || expiredPattern}
     >
@@ -457,11 +457,8 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
         onChange={() => {
           if (readOnly) return;
           if (!todo.completed) {
-            // Trigger pop animation
             setIsPopping(true);
-            // Play reward sound immediately
             playRewardSound();
-            // After animation completes (400ms), toggle the task
             setTimeout(() => {
               onToggle(todo.id);
             }, 400);
@@ -470,27 +467,19 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
           }
         }}
         disabled={readOnly}
-        className={`w-6 h-6 rounded ${readOnly ? 'cursor-default' : 'cursor-pointer'} accent-purple-500 disabled:opacity-60`}
+        className={`w-5 h-5 sm:w-6 sm:h-6 rounded ${readOnly ? 'cursor-default' : 'cursor-pointer'} accent-purple-500 flex-shrink-0`}
       />
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
-        <h3 className={`font-semibold ${getTextColor()} ${isNextDue ? 'text-2xl' : 'text-lg'}`}>
+      <div className="flex-1 min-w-0 space-y-1 sm:space-y-2">
+        <h3 className={`font-semibold leading-tight ${getTextColor()} ${isNextDue ? 'text-lg sm:text-2xl' : 'text-sm sm:text-lg'}`}>
           {todo.title}
         </h3>
-        <div className="flex items-center gap-4 mt-2 flex-wrap">
-          <span className="text-sm text-gray-400">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+          <span className="text-gray-400">
             ⏰ {formatTime(todo.deadlineHour, todo.deadlineMinute)}
           </span>
-          {!todo.completed && !isExpired && (
-            <Countdown
-              timeUntilDeadline={timeUntilDeadline}
-              deadlineHour={todo.deadlineHour}
-              deadlineMinute={todo.deadlineMinute}
-              className={getCountdownColor()}
-            />
-          )}
-          {!todo.completed && isExpired && (
+          {!todo.completed && (
             <Countdown
               timeUntilDeadline={timeUntilDeadline}
               deadlineHour={todo.deadlineHour}

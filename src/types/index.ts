@@ -10,3 +10,31 @@ export interface Todo {
   completedSecond?: number; // 0-59
   createdAt: Date;
 }
+
+export interface List {
+  id: string;
+  name: string;
+  todos: Todo[];
+  rolloverHour: number;
+  rolloverMinute: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  isAdmin: boolean;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  isLoading: boolean;
+  error: string | null;
+  login: (username: string, password: string) => Promise<void>;
+  setup: (username: string, password: string) => Promise<void>;
+  logout: () => void;
+  refreshUser: () => Promise<void>;
+  setUserAdmin: (isAdmin: boolean) => void;
+}

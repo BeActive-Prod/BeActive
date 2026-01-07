@@ -32,28 +32,28 @@ export default function ShareModal({ shareLink, onClose }: ShareModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-800 border-2 border-slate-700 rounded-lg p-6 max-w-md w-full">
-        <h2 className="text-2xl font-bold text-white mb-4">Share Your Task List</h2>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+      <div className="bg-slate-800 border-2 border-slate-700 rounded-xl p-6 sm:p-7 max-w-lg w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-2xl font-bold text-white mb-3">Share Your Task List</h2>
         
-        <p className="text-gray-300 mb-4">
+        <p className="text-gray-300 mb-4 text-sm sm:text-base">
           Share this link with someone to sync your task list:
         </p>
 
         <div className="bg-slate-700 rounded-lg p-4 mb-4 break-all">
-          <p className="text-sm text-purple-400 font-mono">{shareLink}</p>
+          <p className="text-sm text-purple-300 font-mono">{shareLink}</p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={copyToClipboard}
-            className="flex-1 py-2 px-4 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-600 transition-all"
+            className="flex-1 py-3 px-4 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-600 transition-all"
           >
             {copied ? '✓ Copied!' : 'Copy Link'}
           </button>
           <button
             onClick={onClose}
-            className="flex-1 py-2 px-4 bg-slate-700 text-gray-300 font-semibold rounded-lg hover:bg-slate-600 transition-all"
+            className="flex-1 py-3 px-4 bg-slate-700 text-gray-300 font-semibold rounded-lg hover:bg-slate-600 transition-all"
           >
             Close
           </button>
