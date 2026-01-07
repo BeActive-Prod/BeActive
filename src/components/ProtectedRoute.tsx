@@ -10,7 +10,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const pathname = usePathname();
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/login', '/share'];
+  const publicRoutes = ['/login', '/share', '/register'];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
   useEffect(() => {
