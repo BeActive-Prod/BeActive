@@ -391,13 +391,11 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
   };
 
   const startFinalAlert = () => {
-    console.log('Starting final alert sound');
     finalAlert.current.start();
     finalAlertActiveRef.current = true;
   };
 
   const startOverdueAlert = () => {
-    console.log('Starting overdue alert sound');
     overdueAlert.current.start();
     overdueAlertActiveRef.current = true;
   };
@@ -408,7 +406,6 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
   };
 
   const stopFinalAlert = () => {
-    console.log('Stopping final alert sound');
     finalAlert.current.stop();
     finalAlertActiveRef.current = false;
   };
