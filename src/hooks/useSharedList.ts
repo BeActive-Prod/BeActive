@@ -2,24 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Todo } from '@/types';
-
-// Dynamically get API URL based on environment
-const getApiUrl = () => {
-  if (typeof window === 'undefined') return 'http://localhost:3001';
-
-  const isProd = process.env.NODE_ENV === 'production';
-
-  if (!isProd) {
-    // In development: use the same host as the frontend, but on port 3001
-    const host = window.location.hostname;
-    return `http://${host}:3001`;
-  } else {
-    // In production: use the proxy through Next.js
-    return window.location.origin;
-  }
-};
-
-// Don't call getApiUrl at module level - it will be called when needed
+import { getApiUrl } from '@/utils/apiUrl';
 
 export function useSharedList(listId?: string) {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -252,7 +235,7 @@ export function useSharedList(listId?: string) {
   const generateShareLink = useCallback(() => {
     if (!currentListId || currentListId === '__new__') return '';
     const baseUrl = window.location.origin;
-    return `${baseUrl}?list=${currentListId}`;
+    return `${baseUrl}/share?list=${currentListId}`;
   }, [currentListId]);
 
   const isSharedList = useCallback(() => {

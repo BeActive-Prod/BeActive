@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import TodoList from '@/components/TodoList';
 import AddTodoModal from '@/components/AddTodoModal';
 import ShareModal from '@/components/ShareModal';
-import SettingsModal from '@/components/SettingsModal';
+import SettingsAndAdminModal from '@/components/SettingsAndAdminModal';
 import ActionMenu from '@/components/ActionMenu';
 import { useSharedList } from '@/hooks/useSharedList';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Home() {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -17,6 +20,8 @@ export default function Home() {
   const [rolloverMinute, setRolloverMinute] = useState(0);
   const { todos, addTodo, updateTodo, deleteTodo, generateShareLink, currentListId, isSharedList, apiUrl } =
     useSharedList();
+  const { user, token, logout } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -146,7 +151,7 @@ export default function Home() {
   if (!mounted) return null;
 
   return (
-    <main className="min-h-screen px-4 py-5 sm:px-6 md:py-6">
+    <main className="min-h-screen px-4 py-5 sm:px-6 md:py-6 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="max-w-3xl mx-auto pb-14 md:pb-0">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-6 md:mb-0 md:flex-col md:fixed md:top-6 md:left-6 md:z-40">
@@ -161,7 +166,34 @@ export default function Home() {
           )}
         </div>
 
-        {/* Main content */}
+        {/* Top right user menu */}
+        <div className="fixed top-6 right-6 z-40 flex items-center gap-3">
+          {user && (
+            <>
+              <div className="text-right">
+                <p className="text-sm text-gray-300">{user.username}</p>
+                {user.isAdmin && (
+                  <p className="text-xs text-purple-400 font-semibold">Admin</p>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  logout();
+                  router.push('/login');
+                }}
+                className="px-3 py-1.5 bg-red-600/20 border border-red-500 text-red-300 rounded text-sm hover:bg-red-600/30 transition-colors"
+              >
+                Logout
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Share Button - Fixed to side */}
+        {/* Settings Button - Fixed to side below share */}
+        {/* Floating Action Button - REPLACED WITH UNIFIED MENU */}
+
+        {/* Main content - starts at top */}
         <div className="mt-2 md:mt-4">
           <TodoList
             todos={sortedTodos}
@@ -194,9 +226,11 @@ export default function Home() {
         )}
 
         {showSettingsModal && currentListId && currentListId !== '__new__' && (
-          <SettingsModal
+          <SettingsAndAdminModal
             listId={currentListId}
-            apiUrl={apiUrl}
+            token={token || ''}
+            currentUserId={user?.id}
+            isAdmin={user?.isAdmin || false}
             onClose={() => setShowSettingsModal(false)}
           />
         )}

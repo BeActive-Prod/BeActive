@@ -41,15 +41,48 @@ const migrations: Migration[] = [
       `);
     }
   },
-  // Add future migrations here with incrementing version numbers
-  // Example:
-  // {
-  //   version: 2,
-  //   description: 'Add priority field to todos',
-  //   up: (db) => {
-  //     db.exec(`ALTER TABLE todos ADD COLUMN priority INTEGER DEFAULT 0`);
-  //   }
-  // }
+  {
+    version: 2,
+    description: 'Add users table and authentication',
+    up: (db) => {
+  db.exec(`
+        CREATE TABLE IF NOT EXISTS users (
+          id TEXT PRIMARY KEY,
+          username TEXT NOT NULL UNIQUE,
+          password TEXT NOT NULL,
+          is_admin BOOLEAN DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+      db.exec(`
+        ALTER TABLE lists ADD COLUMN user_id TEXT
+      `);
+
+      db.exec(`
+        ALTER TABLE lists ADD COLUMN is_public BOOLEAN DEFAULT 0
+      `);
+    }
+  },
+  {
+    version: 3,
+    description: 'Add invites table for invite links',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS invites (
+          id TEXT PRIMARY KEY,
+          token TEXT NOT NULL UNIQUE,
+          created_by TEXT NOT NULL,
+          max_uses INTEGER NOT NULL,
+          current_uses INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          expires_at DATETIME,
+          FOREIGN KEY (created_by) REFERENCES users(id)
+        )
+      `);
+    }
+  },
 ];
 
 export function runMigrations(db: Database.Database) {
@@ -103,3 +136,4 @@ export function runMigrations(db: Database.Database) {
 }
 
 export default migrations;
+
