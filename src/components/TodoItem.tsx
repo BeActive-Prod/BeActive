@@ -142,6 +142,20 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
 
   const finalAlert = useRef(createAudioAlert({ duration: 10, type: 'final' }));
   const overdueAlert = useRef(createAudioAlert({ duration: 10, type: 'overdue' }));
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  // Initialize or get the shared audio context
+  const getAudioContext = () => {
+    if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+      try {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      } catch (e) {
+        console.log('Could not create audio context', e);
+        return null;
+      }
+    }
+    return audioContextRef.current;
+  };
 
   useEffect(() => {
     // Remove pop-in animation after it completes
@@ -241,10 +255,8 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
 
         // Sound alerts based on time remaining
         if (shouldPlaySound) {
-          if (isFinalWindow) {
-            // Final alert handles this window; no additional short beeps here
-          } else if (difference < 60 && difference > 0) {
-            // Every second for last 1 minute
+          if (difference < 60 && difference > 0 && !isFinalWindow) {
+            // Every second for last 1 minute (except final 10 seconds)
             playAlert('tick');
           } else if (difference < 5 * 60 && difference > 0) {
             // Every 10 seconds for last 5 minutes (except final minute handled above)
@@ -344,7 +356,8 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
 
   const playAlert = (type: 'beep' | 'tick' = 'beep') => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = getAudioContext();
+      if (!audioContext) return;
 
       if (type === 'tick') {
         // Quick tick sound
@@ -417,6 +430,14 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
       }
       if (overdueAlertActiveRef.current) {
         stopOverdueAlert();
+      }
+      // Clean up the shared audio context
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        try {
+          audioContextRef.current.close().catch(() => {});
+        } catch (e) {
+          // Already closed
+        }
       }
     };
   }, []);
