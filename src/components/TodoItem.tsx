@@ -11,9 +11,10 @@ interface TodoItemProps {
   isNextDue?: boolean;
   rolloverHour?: number;
   rolloverMinute?: number;
+  enableSound?: boolean;
 }
 
-export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, rolloverHour = 4, rolloverMinute = 0 }: TodoItemProps) {
+export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, rolloverHour = 4, rolloverMinute = 0, enableSound = true }: TodoItemProps) {
   const [timeUntilDeadline, setTimeUntilDeadline] = useState<number>(0);
   const [isCaution, setIsCaution] = useState(false);
   const [isUrgent, setIsUrgent] = useState(false);
@@ -26,14 +27,120 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
     everyMin: false,
     every10sec: false,
     everySec: false,
-    crazy: false,
     notif1h: false,
     notif10m: false,
     notif5m: false,
     notif1m: false,
   });
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const gainNodesRef = useRef<GainNode[]>([]);
+  const finalAlertActiveRef = useRef(false);
+  const overdueAlertActiveRef = useRef(false);
+
+  // Shared audio alert helper factory
+  const createAudioAlert = (config: { duration: number; type: 'final' | 'overdue' }) => {
+    let audioContext: AudioContext | null = null;
+    let gainNodes: GainNode[] = [];
+    let oscillators: OscillatorNode[] = [];
+    let timeoutId: number | null = null;
+
+    const start = () => {
+      try {
+        stop();
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)() as AudioContext;
+        gainNodes = [];
+        oscillators = [];
+
+        if (config.type === 'final') {
+          // 4-note arpeggio repeated for duration
+          const notes = [784, 659, 988, 880];
+          const noteDuration = 0.07;
+          const gapDuration = 0.03;
+          const cycleTime = noteDuration + gapDuration;
+          const totalCycles = Math.floor(config.duration / (notes.length * cycleTime));
+
+          for (let cycle = 0; cycle < totalCycles; cycle++) {
+            notes.forEach((frequency, index) => {
+              const oscillator = audioContext!.createOscillator();
+              const gainNode = audioContext!.createGain();
+              oscillator.connect(gainNode);
+              gainNode.connect(audioContext!.destination);
+
+              oscillator.frequency.value = frequency;
+              oscillator.type = 'triangle';
+
+              const startTime = audioContext!.currentTime + cycle * notes.length * cycleTime + index * cycleTime;
+              gainNode.gain.setValueAtTime(0.45, startTime);
+
+              oscillator.start(startTime);
+              oscillator.stop(startTime + noteDuration);
+
+              gainNodes.push(gainNode);
+              oscillators.push(oscillator);
+            });
+          }
+        } else if (config.type === 'overdue') {
+          // Single sine wave at 1200 Hz
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+
+          oscillator.start(audioContext.currentTime);
+
+          gainNodes.push(gainNode);
+          oscillators.push(oscillator);
+        }
+
+        timeoutId = window.setTimeout(() => {
+          stop();
+        }, config.duration * 1000);
+      } catch (e) {
+        console.log(`Could not start ${config.type} alert sound`, e);
+      }
+    };
+
+    const stop = () => {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+
+      gainNodes.forEach(gainNode => {
+        try {
+          gainNode.gain.setValueAtTime(0, gainNode.context.currentTime);
+        } catch (e) {
+          // Already silenced
+        }
+      });
+      gainNodes = [];
+
+      oscillators.forEach(oscillator => {
+        try {
+          oscillator.stop();
+        } catch (e) {
+          // Already stopped
+        }
+      });
+      oscillators = [];
+
+      if (audioContext) {
+        try {
+          audioContext.close().catch(() => {});
+        } catch (e) {
+          // Already closed
+        }
+        audioContext = null;
+      }
+    };
+
+    return { start, stop };
+  };
+
+  const finalAlert = useRef(createAudioAlert({ duration: 10, type: 'final' }));
+  const overdueAlert = useRef(createAudioAlert({ duration: 10, type: 'overdue' }));
 
   useEffect(() => {
     // Remove pop-in animation after it completes
@@ -85,6 +192,26 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
 
       setTimeUntilDeadline(difference);
 
+      const isFinalWindow = difference > 0 && difference <= 10;
+      const shouldPlaySound = enableSound && !todo.completed;
+      const isOverdueWindow = difference <= 0 && difference > -10;
+
+      if (shouldPlaySound && isFinalWindow) {
+        if (!finalAlertActiveRef.current) {
+          startFinalAlert();
+        }
+      } else if (finalAlertActiveRef.current) {
+        stopFinalAlert();
+      }
+
+      if (shouldPlaySound && isOverdueWindow) {
+        if (!overdueAlertActiveRef.current) {
+          startOverdueAlert();
+        }
+      } else if (overdueAlertActiveRef.current && (!shouldPlaySound || difference <= -10)) {
+        stopOverdueAlert();
+      }
+
       if (!todo.completed) {
         // Format remaining time for notifications
         const remainingMinutes = Math.ceil(difference / 60);
@@ -112,41 +239,39 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
         }
 
         // Sound alerts based on time remaining
-        if (difference <= 10 && difference > 0) {
-          // Crazy sound for last 10 seconds only (not when already overdue)
-          if (!soundPlayedRef.current.crazy) {
-            playCrazyAlert();
-            soundPlayedRef.current.crazy = true;
-          }
-        } else if (difference < 60 && difference > 0) {
-          // Every second for last 1 minute
-          playAlert('tick');
-        } else if (difference < 5 * 60 && difference > 0) {
-          // Every 10 seconds for last 5 minutes (except final minute handled above)
-          if (Math.floor(difference) % 10 === 0 && !soundPlayedRef.current.every10sec) {
-            playAlert('beep');
-            soundPlayedRef.current.every10sec = true;
-            setTimeout(() => {
-              soundPlayedRef.current.every10sec = false;
-            }, 100);
-          }
-        } else if (difference < 10 * 60 && difference > 0) {
-          // Every minute for 10 to 5 minutes
-          if (Math.floor(difference) % 60 === 0 && !soundPlayedRef.current.everyMin) {
-            playAlert('beep');
-            soundPlayedRef.current.everyMin = true;
-            setTimeout(() => {
-              soundPlayedRef.current.everyMin = false;
-            }, 100);
-          }
-        } else if (difference < 60 * 60 && difference > 0) {
-          // Every 10 minutes from 1 hour to 10 minutes
-          if (Math.floor(difference) % 600 === 0 && !soundPlayedRef.current.every10min) {
-            playAlert('beep');
-            soundPlayedRef.current.every10min = true;
-            setTimeout(() => {
-              soundPlayedRef.current.every10min = false;
-            }, 100);
+        if (shouldPlaySound) {
+          if (isFinalWindow) {
+            // Final alert handles this window; no additional short beeps here
+          } else if (difference < 60 && difference > 0) {
+            // Every second for last 1 minute
+            playAlert('tick');
+          } else if (difference < 5 * 60 && difference > 0) {
+            // Every 10 seconds for last 5 minutes (except final minute handled above)
+            if (Math.floor(difference) % 10 === 0 && !soundPlayedRef.current.every10sec) {
+              playAlert('beep');
+              soundPlayedRef.current.every10sec = true;
+              setTimeout(() => {
+                soundPlayedRef.current.every10sec = false;
+              }, 100);
+            }
+          } else if (difference < 10 * 60 && difference > 0) {
+            // Every minute for 10 to 5 minutes
+            if (Math.floor(difference) % 60 === 0 && !soundPlayedRef.current.everyMin) {
+              playAlert('beep');
+              soundPlayedRef.current.everyMin = true;
+              setTimeout(() => {
+                soundPlayedRef.current.everyMin = false;
+              }, 100);
+            }
+          } else if (difference < 60 * 60 && difference > 0) {
+            // Every 10 minutes from 1 hour to 10 minutes
+            if (Math.floor(difference) % 600 === 0 && !soundPlayedRef.current.every10min) {
+              playAlert('beep');
+              soundPlayedRef.current.every10min = true;
+              setTimeout(() => {
+                soundPlayedRef.current.every10min = false;
+              }, 100);
+            }
           }
         }
       }
@@ -182,7 +307,7 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
     const interval = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(interval);
-  }, [todo, todo.completed, rolloverHour, rolloverMinute]);
+  }, [todo, todo.completed, rolloverHour, rolloverMinute, enableSound]);
 
   const triggerNotification = (title: string, body: string) => {
     if (typeof window === 'undefined') return;
@@ -202,17 +327,9 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
   // Mute sound when task is completed
   useEffect(() => {
     if (todo.completed) {
-      // Immediately silence all active audio by setting gain to 0
-      gainNodesRef.current.forEach(gainNode => {
-        try {
-          gainNode.gain.setValueAtTime(0, gainNode.context.currentTime);
-        } catch (e) {
-          // Already stopped, ignore
-        }
-      });
-      gainNodesRef.current = [];
+      stopFinalAlert();
+      stopOverdueAlert();
 
-      // Only reset non-crazy flags. Keep crazy flag so alert doesn't repeat if unchecked
       soundPlayedRef.current.every10min = false;
       soundPlayedRef.current.everyMin = false;
       soundPlayedRef.current.every10sec = false;
@@ -221,21 +338,6 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
       soundPlayedRef.current.notif10m = false;
       soundPlayedRef.current.notif5m = false;
       soundPlayedRef.current.notif1m = false;
-    }
-  }, [todo.completed]);
-
-  // When task becomes uncompleted (unchecked), silence audio but don't reset crazy flag
-  useEffect(() => {
-    if (!todo.completed && soundPlayedRef.current.crazy) {
-      // If the crazy sound has already played for this task, mute any ongoing audio
-      gainNodesRef.current.forEach(gainNode => {
-        try {
-          gainNode.gain.setValueAtTime(0, gainNode.context.currentTime);
-        } catch (e) {
-          // Already stopped, ignore
-        }
-      });
-      gainNodesRef.current = [];
     }
   }, [todo.completed]);
 
@@ -252,7 +354,6 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
         oscillator.frequency.value = 1200;
         oscillator.type = 'sine';
         gainNode.gain.setValueAtTime(0.35, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
         oscillator.start(audioContext.currentTime);
         oscillator.stop(audioContext.currentTime + 0.1);
         // Notification removed as per new requirements
@@ -278,7 +379,6 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
 
           const startTime = audioContext.currentTime + index * (noteDuration + gapDuration);
           gainNode.gain.setValueAtTime(0.5, startTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.02, startTime + noteDuration);
 
           oscillator.start(startTime);
           oscillator.stop(startTime + noteDuration);
@@ -289,46 +389,48 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
     }
   };
 
-  const playCrazyAlert = () => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)() as AudioContext;
-      audioContextRef.current = audioContext;
-      
-      // Clear previous gain nodes before starting new alert
-      gainNodesRef.current = [];
-      
-      // Repeat the pleasant 4-note arpeggio faster for 10 seconds
-      const notes = [784, 659, 988, 880]; // G5, E5, B5, A5
-      const noteDuration = 0.07;
-      const gapDuration = 0.03;
-      const cycleTime = noteDuration + gapDuration;
-      const totalCycles = Math.floor(10 / (notes.length * cycleTime));
-
-      for (let cycle = 0; cycle < totalCycles; cycle++) {
-        notes.forEach((frequency, index) => {
-          const oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-
-          oscillator.frequency.value = frequency;
-          oscillator.type = 'triangle';
-
-          const startTime = audioContext.currentTime + cycle * notes.length * cycleTime + index * cycleTime;
-          gainNode.gain.setValueAtTime(0.45, startTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.02, startTime + noteDuration);
-
-          oscillator.start(startTime);
-          oscillator.stop(startTime + noteDuration);
-          
-          // Track gain nodes so we can silence them immediately if task is completed
-          gainNodesRef.current.push(gainNode);
-        });
-      }
-    } catch (e) {
-      console.log('Could not play final alert sound', e);
-    }
+  const startFinalAlert = () => {
+    console.log('Starting final alert sound');
+    finalAlert.current.start();
+    finalAlertActiveRef.current = true;
   };
+
+  const startOverdueAlert = () => {
+    console.log('Starting overdue alert sound');
+    overdueAlert.current.start();
+    overdueAlertActiveRef.current = true;
+  };
+
+  const stopOverdueAlert = () => {
+    overdueAlert.current.stop();
+    overdueAlertActiveRef.current = false;
+  };
+
+  const stopFinalAlert = () => {
+    console.log('Stopping final alert sound');
+    finalAlert.current.stop();
+    finalAlertActiveRef.current = false;
+  };
+
+  useEffect(() => {
+    return () => {
+      if (finalAlertActiveRef.current) {
+        stopFinalAlert();
+      }
+      if (overdueAlertActiveRef.current) {
+        stopOverdueAlert();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!enableSound && finalAlertActiveRef.current) {
+      stopFinalAlert();
+    }
+    if (!enableSound && overdueAlertActiveRef.current) {
+      stopOverdueAlert();
+    }
+  }, [enableSound]);
 
   const getBgColor = () => {
     if (todo.completed) return 'bg-slate-800/50 border-slate-700';
@@ -375,32 +477,6 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
 
   const formatTime = (hour: number, minute: number) => {
     return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-  };
-
-  const playRewardSound = () => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // Short pop/click sound
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.frequency.value = 800; // Pop frequency
-      oscillator.type = 'sine';
-
-      const now = audioContext.currentTime;
-      const duration = 0.08; // Very short - 80ms
-      
-      gainNode.gain.setValueAtTime(0.25, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
-
-      oscillator.start(now);
-      oscillator.stop(now + duration);
-    } catch (e) {
-      console.log('Could not play reward sound', e);
-    }
   };
 
   const triggerRainbowEffect = () => {
@@ -456,7 +532,6 @@ export default function TodoItem({ todo, onToggle, onDelete, isNextDue = false, 
         onChange={() => {
           if (!todo.completed) {
             setIsPopping(true);
-            playRewardSound();
             setTimeout(() => {
               onToggle(todo.id);
             }, 400);

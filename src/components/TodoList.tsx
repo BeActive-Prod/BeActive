@@ -58,6 +58,7 @@ export default function TodoList({ todos, onToggle, onDelete, listId, apiUrl }: 
             isNextDue={true}
             rolloverHour={rolloverHour}
             rolloverMinute={rolloverMinute}
+            enableSound={true}
           />
         </div>
       )}
@@ -77,6 +78,7 @@ export default function TodoList({ todos, onToggle, onDelete, listId, apiUrl }: 
               isNextDue={false}
               rolloverHour={rolloverHour}
               rolloverMinute={rolloverMinute}
+              enableSound={false}
             />
           ))}
         </div>
@@ -105,6 +107,7 @@ export default function TodoList({ todos, onToggle, onDelete, listId, apiUrl }: 
                   onDelete={onDelete}
                   rolloverHour={rolloverHour}
                   rolloverMinute={rolloverMinute}
+                  enableSound={false}
                 />
               ))}
             </div>
